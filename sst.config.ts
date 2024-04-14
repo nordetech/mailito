@@ -1,5 +1,6 @@
 /// <reference path="./.sst/platform/config.d.ts" />
 
+import { Database } from './infra/database.js'
 import { Ses } from './infra/ses.js'
 
 const app = 'merki' as const
@@ -26,9 +27,12 @@ export default $config({
 
     const zone = await aws.route53.getZone({ name: zoneDomain })
 
+    const database = Database()
+
     const ses = Ses({
       zone,
       domain: appDomain,
+      link: [database.table],
     })
 
     return {

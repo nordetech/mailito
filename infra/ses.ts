@@ -3,6 +3,7 @@ import { SESClient, waitUntilIdentityExists } from '@aws-sdk/client-ses'
 interface Props {
   domain: $util.Input<string>
   zone: aws.route53.GetZoneResult | aws.route53.Zone
+  link?: $util.Input<any>
 }
 
 const sesClient = new SESClient()
@@ -60,7 +61,8 @@ export function Ses(props: Props) {
 
   const topic = new sst.aws.SnsTopic('Emails', {})
   topic.subscribe({
-    handler: 'services/fns/src/email-subscriber.handler',
+    handler: 'services/mailing/src/email-subscriber.handler',
+    link: props.link,
     transform: {
       function(fn) {
         fn.name = `${$util.getStack()}-emails-subscriber`
