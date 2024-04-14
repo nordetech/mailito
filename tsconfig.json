@@ -1,0 +1,9 @@
+{
+  "extends": "@tsconfig/node20",
+  "include": ["sst.config.ts", "infra"],
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "Bundler"
+  }
+}
