@@ -1,14 +1,15 @@
 /// <reference path="./.sst/platform/config.d.ts" />
+import packageJson from './package.json'
 
 import { Database } from './infra/database.js'
 import { Ses } from './infra/ses.js'
 
-const app = 'merki' as const
+const zoneDomain = 'mailito.dev'
 
 export default $config({
   app(input) {
     return {
-      name: app,
+      name: packageJson.name,
       home: 'aws',
       providers: {
         aws: {
@@ -20,10 +21,11 @@ export default $config({
   },
   async run() {
     const stage = $util.getStack()
-    const domainPrefix = stage === 'production' ? '' : `${stage}.`
+    const isLocal = ['production', 'dev'].includes(stage)
 
-    const zoneDomain = 'norde.tech'
-    const appDomain = `${domainPrefix}${app}.${zoneDomain}` as const
+    const localEnvDomainPrefix = isLocal ? '' : `${stage}.dev`
+    const domainPrefix = stage === 'production' ? '' : `${isLocal ? localEnvDomainPrefix : stage}.`
+    const domain = `${domainPrefix}${zoneDomain}` as const
 
     const zone = await aws.route53.getZone({ name: zoneDomain })
 
@@ -31,7 +33,8 @@ export default $config({
 
     const ses = Ses({
       zone,
-      domain: appDomain,
+      domain,
+      isReceivingActive: stage === 'dev',
       link: [database.table],
     })
 

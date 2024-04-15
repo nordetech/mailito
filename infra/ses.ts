@@ -3,6 +3,7 @@ import { SESClient, waitUntilIdentityExists } from '@aws-sdk/client-ses'
 interface Props {
   domain: $util.Input<string>
   zone: aws.route53.GetZoneResult | aws.route53.Zone
+  isReceivingActive?: $util.Input<boolean>
   link?: $util.Input<any>
 }
 
@@ -41,7 +42,7 @@ export function Ses(props: Props) {
     zoneId: props.zone.id,
     name: subdomain,
     type: aws.route53.RecordType.MX,
-    ttl: 3600,
+    ttl: 300,
     records: [$util.interpolate`10 inbound-smtp.${region}.amazonaws.com`],
   })
 
@@ -59,27 +60,34 @@ export function Ses(props: Props) {
     }
   })
 
-  const topic = new sst.aws.SnsTopic('Emails', {})
+  const topic = new sst.aws.SnsTopic('Emails', {
+    transform: {
+      topic(args) {
+        args.name = `${$util.getProject()}-${$util.getStack()}-emails`
+        return args
+      },
+    },
+  })
   topic.subscribe({
     handler: 'services/mailing/src/email-subscriber.handler',
     link: props.link,
     transform: {
       function(fn) {
-        fn.name = `${$util.getStack()}-emails-subscriber`
+        fn.name = `${$util.getProject()}-${$util.getStack()}-emails-handler`
         return fn
       },
       logGroup(logs) {
-        logs.name = `/aws/lambda/${$util.getStack()}/emails-subscriber`
+        logs.name = `/aws/lambda/${$util.getProject()}/${$util.getStack()}/emails-handler`
         return logs
       },
       role(role) {
-        role.name = `${$util.getStack()}-emails-subscriber`
+        role.name = `${$util.getProject()}-${$util.getStack()}-emails-handler`
         return role
       },
     },
   })
 
-  $util.output(props.domain).apply(async (domain) => {
+  $util.all([props.domain, props.isReceivingActive]).apply(async ([domain, isReceivingActive]) => {
     const result = await waitUntilIdentityExists(
       {
         client: sesClient,
@@ -103,18 +111,41 @@ export function Ses(props: Props) {
     })
 
     const receivingRuleSet = new aws.ses.ReceiptRuleSet('DomainReceiving', {
-      ruleSetName: `${$util.getStack()}-receiving`,
+      ruleSetName: `${$util.getProject()}-${$util.getStack()}-receiving`,
     })
     new aws.ses.ReceiptRule('DomainReceiveRule', {
       ruleSetName: receivingRuleSet.ruleSetName,
       enabled: true,
-      name: `${$util.getStack()}-receive-rule`,
+      name: `${$util.getProject()}-${$util.getStack()}-receive-rule`,
       recipients: [props.domain],
       scanEnabled: true,
       snsActions: [{ position: 1, topicArn: topic.arn }],
     })
-    new aws.ses.ActiveReceiptRuleSet('DomainReceivingActive', {
-      ruleSetName: receivingRuleSet.ruleSetName,
+
+    // only 1 is allowed in an aws account.
+    if (isReceivingActive) {
+      new aws.ses.ActiveReceiptRuleSet('DomainReceivingActive', {
+        ruleSetName: receivingRuleSet.ruleSetName,
+      })
+    }
+
+    new aws.ses.MailFrom('DomainMailFrom', {
+      domain: identity.domain,
+      mailFromDomain: $util.interpolate`outbox.${identity.domain}`,
+    })
+    new aws.route53.Record('DomainMailFromMX', {
+      zoneId: props.zone.id,
+      name: $util.interpolate`outbox.${subdomain}`,
+      type: aws.route53.RecordType.MX,
+      ttl: 300,
+      records: [$util.interpolate`10 feedback-smtp.${region}.amazonaws.com`],
+    })
+    new aws.route53.Record('DomainMailFromTxt', {
+      zoneId: props.zone.id,
+      name: $util.interpolate`outbox.${subdomain}`,
+      type: aws.route53.RecordType.TXT,
+      ttl: 3600,
+      records: [$util.interpolate`v=spf1 include:amazonses.com ~all`],
     })
   })
 

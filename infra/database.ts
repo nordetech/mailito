@@ -8,6 +8,11 @@ export function Database() {
       hashKey: 'pk',
       rangeKey: 'sk',
     },
+    transform: {
+      table(args) {
+        args.name = `${$util.getProject()}-${$util.getStack()}-database`
+      },
+    },
   })
 
   return {
