@@ -20,8 +20,8 @@ export default $config({
     }
   },
   async run() {
-    const stage = $util.getStack()
-    const isLocal = ['production', 'dev'].includes(stage)
+    const stage = $app.stage
+    const isLocal = $dev
 
     const localEnvDomainPrefix = isLocal ? '' : `${stage}.dev`
     const domainPrefix = stage === 'production' ? '' : `${isLocal ? localEnvDomainPrefix : stage}.`

@@ -35,7 +35,7 @@ export function Ses(props: Props) {
     name: $util.interpolate`_dmarc.${props.domain}`,
     type: aws.route53.RecordType.TXT,
     ttl: 600,
-    records: [`v=DMARC1;p=quarantine;rua=mailto:dmarc@${props.domain}`],
+    records: [`v=DMARC1; p=none;`],
   })
   // mx record for receiving
   new aws.route53.Record('DomainMX', {
@@ -138,7 +138,7 @@ export function Ses(props: Props) {
       name: $util.interpolate`outbox.${subdomain}`,
       type: aws.route53.RecordType.MX,
       ttl: 300,
-      records: [$util.interpolate`10 feedback-smtp.${region}.amazonaws.com`],
+      records: [$util.interpolate`10 feedback-smtp.${region}.amazonses.com`],
     })
     new aws.route53.Record('DomainMailFromTxt', {
       zoneId: props.zone.id,
