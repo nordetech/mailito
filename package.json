@@ -9,12 +9,15 @@
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^4.3.0",
     "@tsconfig/node20": "^20.1.4",
-    "@types/node": "^20.12.7",
+    "@types/node": "^20.12.12",
     "prettier": "^3.2.5",
-    "prettier-plugin-tailwindcss": "^0.5.13",
+    "prettier-plugin-tailwindcss": "^0.5.14",
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "@aws-sdk/client-ses": "^3.554.0"
+    "@aws-sdk/client-route-53": "^3.577.0",
+    "@aws-sdk/client-ses": "^3.577.0",
+    "@pulumi/aws": "^6.36.0",
+    "@pulumi/pulumi": "^3.116.1"
   }
 }
