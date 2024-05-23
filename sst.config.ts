@@ -30,12 +30,12 @@ export default $config({
     const prod = $app.stage === 'production'
     const domain = [$dev && $app.stage, prod ? null : $dev ? 'dev' : $app.stage, tld].filter(Boolean).join('.')
 
-    const database = Database()
+    const { accounts, database } = Database()
 
     const ses = Ses({
       domain,
       receiver: prod,
-      link: [database.table],
+      link: [database, accounts],
     })
 
     return {

@@ -1,5 +1,5 @@
 import { SNSEvent } from 'aws-lambda'
-import { SESNotification } from './ses.types.js'
+import { SESNotification } from './ses.types'
 
 export async function handler(event: SNSEvent) {
   event.Records.forEach((record) => {

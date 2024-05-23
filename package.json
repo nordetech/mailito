@@ -18,6 +18,7 @@
     "@aws-sdk/client-route-53": "^3.577.0",
     "@aws-sdk/client-ses": "^3.577.0",
     "@pulumi/aws": "^6.36.0",
-    "@pulumi/pulumi": "^3.116.1"
+    "@pulumi/pulumi": "^3.116.1",
+    "sst": "^3.0.19"
   }
 }
