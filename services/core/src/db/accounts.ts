@@ -1,8 +1,8 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
-import { Entity } from 'electrodb'
+import { Entity, Service } from 'electrodb'
 import { Resource } from 'sst'
-import { ulid } from 'ulid'
 import { slugify } from 'usemods'
+import { id, refID, timestamps } from './util'
 
 export const config = {
   client: new DynamoDBClient(),
@@ -20,70 +20,105 @@ export const Workspace = new Entity(
       version: '1',
     },
     attributes: {
-      workspaceID: { type: 'string', default: () => `wrk_${ulid().toLowerCase()}`, readOnly: true },
+      workspaceID: id('wrk'),
+
       name: { type: 'string', required: true },
       slug: { type: 'string', set: (val, item) => slugify(item['name']), required: true },
-      createdAt: { type: 'string', default: () => new Date().toISOString(), readOnly: true },
-      updatedAt: { type: 'string', set: () => new Date().toISOString(), readOnly: true },
+
+      ...timestamps,
     },
     indexes: {
       workspace: {
         pk: { field: 'pk', composite: ['workspaceID'] },
         sk: { field: 'sk', composite: ['createdAt'] },
       },
+      members: {
+        collection: 'members',
+        index: 'gsi1',
+        pk: { field: 'gsi1pk', composite: ['workspaceID'] },
+        sk: { field: 'gsi1sk', composite: [] },
+      },
     },
   },
   config
 )
 
-/**
- * An `Identity` is an object that can access resources in the system.
- * An `Identity` can be a *machine* (e.g. that authenticates with a token) or a *human
- * user* (e.g. who authenticates via username/password). The type of `Identity` is determined
- * by the authentication provider.
- *
- * An `Identity` can be linked to multiple `User` instances.
- */
-export const Identity = new Entity(
+export const User = new Entity(
   {
     model: {
-      entity: 'identity',
+      entity: 'user',
       service: 'workspaces',
       version: '1',
     },
     attributes: {
-      identityID: { type: 'string', default: () => `id_${ulid().toLowerCase()}`, readOnly: true },
+      userID: id('usr'),
 
-      provider: { type: ['password', 'token'], required: true },
+      provider: { type: ['password'], required: true },
 
       email: { type: 'string' },
       passwordHash: { type: 'string' },
 
-      createdAt: { type: 'string', default: () => new Date().toISOString(), readOnly: true },
-      updatedAt: { type: 'string', set: () => new Date().toISOString(), readOnly: true },
+      ...timestamps,
     },
-    indexes: {},
+    indexes: {
+      user: {
+        pk: { field: 'pk', composite: ['userID'] },
+        sk: { field: 'sk', composite: ['createdAt'] },
+      },
+      profile: {
+        collection: 'profiles',
+        index: 'gsi2',
+        pk: { field: 'gsi2pk', composite: ['userID'] },
+        sk: { field: 'gsi2sk', composite: [] },
+      },
+    },
   },
   config
 )
 
-/**
- * A `User` is an instance of an `Identity` scoped to a `Workspace`.
- *
- * An `Identity` can access a `Workspace` if and only if the `Workspace` has a `User` associated with that `Identity`.
- */
-export const User = new Entity({
-  model: {
-    entity: 'user',
-    service: 'workspaces',
-    version: '1',
-  },
-  attributes: {
-    userID: { type: 'string', default: () => `usr_${ulid().toLowerCase()}`, readOnly: true },
-    identityID: { type: 'string', required: true },
-    workspaceID: { type: 'string', required: true },
+export const Profile = new Entity(
+  {
+    model: {
+      entity: 'profile',
+      service: 'workspaces',
+      version: '1',
+    },
+    attributes: {
+      profileID: id('prf'),
+      workspaceID: refID('wrk', { required: true }),
+      userID: refID('usr', { required: true }),
 
-    fullname: { type: 'string', required: false },
+      fullname: { type: 'string', required: false },
+
+      ...timestamps,
+    },
+    indexes: {
+      profile: {
+        pk: { field: 'pk', composite: ['profileID'] },
+        sk: { field: 'sk', composite: ['createdAt'] },
+      },
+      workspace: {
+        collection: 'members',
+        index: 'gsi1',
+        pk: { field: 'gsi1pk', composite: ['workspaceID'] },
+        sk: { field: 'gsi1sk', composite: ['createdAt'] },
+      },
+      user: {
+        collection: 'profiles',
+        index: 'gsi2',
+        pk: { field: 'gsi2pk', composite: ['userID'] },
+        sk: { field: 'gsi2sk', composite: [] },
+      },
+    },
   },
-  indexes: {},
-})
+  config
+)
+
+export const Account = new Service(
+  {
+    workspace: Workspace,
+    user: User,
+    profile: Profile,
+  },
+  config
+)
