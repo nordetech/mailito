@@ -1,10 +1,14 @@
 {
-  "name": "core",
+  "name": "@mailito/core",
   "type": "module",
-  "scripts": {},
+  "exports": {
+    "./auth": "./src/auth/index.ts",
+    "./users": "./src/users/index.ts"
+  },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.577.0",
     "@aws-sdk/client-ses": "^3.577.0",
+    "@node-rs/argon2": "^1.8.3",
     "electrodb": "^2.14.0",
     "ulid": "^2.3.0",
     "usemods": "^1.1.0",

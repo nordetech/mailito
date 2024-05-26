@@ -1,5 +1,5 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
-import { Entity, Service } from 'electrodb'
+import { CustomAttributeType, Entity, EntityRecord, Service } from 'electrodb'
 import { Resource } from 'sst'
 import { slugify } from 'usemods'
 import { id, refID, timestamps } from './util'
@@ -23,7 +23,7 @@ export const Workspace = new Entity(
       workspaceID: id('wrk'),
 
       name: { type: 'string', required: true },
-      slug: { type: 'string', set: (val, item) => slugify(item['name']), required: true },
+      slug: { type: 'string', set: (val, item) => slugify(item['name']) },
 
       ...timestamps,
     },
@@ -42,6 +42,7 @@ export const Workspace = new Entity(
   },
   config
 )
+export interface WorkspaceRecord extends EntityRecord<typeof Workspace> {}
 
 export const User = new Entity(
   {
@@ -53,10 +54,10 @@ export const User = new Entity(
     attributes: {
       userID: id('usr'),
 
-      provider: { type: ['password'], required: true },
+      provider: { type: ['password'] as const, required: true },
 
-      email: { type: 'string' },
-      passwordHash: { type: 'string' },
+      email: { type: 'string', required: true },
+      secret: { type: 'string' },
 
       ...timestamps,
     },
@@ -64,6 +65,11 @@ export const User = new Entity(
       user: {
         pk: { field: 'pk', composite: ['userID'] },
         sk: { field: 'sk', composite: ['createdAt'] },
+      },
+      email: {
+        index: 'gsi1',
+        pk: { field: 'gsi1pk', composite: ['email'] },
+        sk: { field: 'gsi1sk', composite: [] },
       },
       profile: {
         collection: 'profiles',
@@ -75,7 +81,9 @@ export const User = new Entity(
   },
   config
 )
+export type UserRecord = EntityRecord<typeof User>
 
+export const Roles = ['admin', 'editor', 'viewer'] as const
 export const Profile = new Entity(
   {
     model: {
@@ -85,9 +93,14 @@ export const Profile = new Entity(
     },
     attributes: {
       profileID: id('prf'),
-      workspaceID: refID('wrk', { required: true }),
       userID: refID('usr', { required: true }),
+      workspaceID: refID('wrk', { required: true }),
 
+      // these records act as a cache so multiple queries are not required when fetching a user profile
+      workspace: { type: CustomAttributeType<WorkspaceRecord>('any'), required: true },
+      email: { type: 'string', required: true },
+
+      role: { type: Roles, required: true },
       fullname: { type: 'string', required: false },
 
       ...timestamps,
@@ -113,6 +126,7 @@ export const Profile = new Entity(
   },
   config
 )
+export type ProfileRecord = EntityRecord<typeof Profile>
 
 export const Account = new Service(
   {

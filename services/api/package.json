@@ -1,0 +1,17 @@
+{
+  "name": "@mailito/api",
+  "type": "module",
+  "dependencies": {
+    "@hono/valibot-validator": "^0.2.5",
+    "@mailito/core": "workspace:*",
+    "hono": "^4.3.11",
+    "hono-sessions": "^0.5.8",
+    "usemods": "^1.1.0",
+    "valibot": "0.31.0-rc.1",
+    "@node-rs/argon2": "^1.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "typescript": "^5.4.5"
+  }
+}

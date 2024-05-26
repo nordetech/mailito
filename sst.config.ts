@@ -3,6 +3,7 @@ import packageJson from './package.json'
 
 import { Database } from './infra/database.js'
 import { Ses } from './infra/ses.js'
+import { Api } from './infra/api'
 
 const tld = 'mailito.dev'
 
@@ -38,9 +39,17 @@ export default $config({
       link: [database, accounts],
     })
 
+    const api = Api({
+      tables: {
+        database,
+        accounts,
+      },
+    })
+
     return {
       IdentityArn: ses.identity.arn,
       TopicArn: ses.topic.arn,
+      ApiUrl: api.function.url,
     }
   },
 })
